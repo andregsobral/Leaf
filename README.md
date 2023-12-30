@@ -128,7 +128,7 @@ After establishing a connection and defining types and collections we can now qu
 
 ```julia
 # Create a Connection
-mongo = Leaf.connect(:mongo, "mongo", "leaf_testing", port=27017)
+mongo = Leaf.connect(:mongo, "leaf_testing", host="mongo", port=27017)
 # --------------------------------------------------------------
 # ---- Define type Thing + Base.convert, as seen above.... -----
 # --------------------------------------------------------------
