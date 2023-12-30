@@ -25,29 +25,31 @@ create()
 
 Other auxiliary methods also serve to increase the flexibility of database interactivity:
 
-```
+```julia
 # Auxiliar Operations
-*** aggregate
 
-An aggregation consists of one or more stages that process entries.
+aggregate()
 
-- Each stage performs an operation on the input entries. For example, a stage can filter entries, group based on a condition, and calculate values.
+# An aggregation consists of one or more stages that process entries.
 
-- The entries that are output from a stage are passed to the next stage.
+#- Each stage performs an operation on the input entries. For example, a stage can filter entries, group based on a condition, and calculate values.
 
-- An aggregation can return results for groups of entries such as, return the total, average, maximum, and minimum values.  
+#- The entries that are output from a stage are passed to the next stage.
 
-*** count
+#- An aggregation can return results for groups of entries such as, return the total, average, maximum, and minimum values.  
 
-Count the number of entries of a collection or table.
+count()
 
-*** drop
+# Count the number of entries of a collection or table.
 
-Destroy a collection or table, i.e, all data associated with that collection is deleted.  
+drop()
 
-*** raw
+# Destroy a collection or table, i.e, all data associated with that collection is deleted.  
 
-Allows the execution of queries that do not fall under the CRUD designation.
+raw()
+
+# Allows the execution of queries that do not fall under the CRUD designation.
+
 ```
 ----
 
@@ -62,23 +64,23 @@ dbname = "leaf_testing"
 
 # --- ex1:
 # Simple URI
-mongo = Leaf.connect(:mongo, "mongodb://mongo:27017", dbname)
+mongo = Leaf.connect(:mongo, dbname, "mongodb://mongo:27017")
 
-# --- ex2:
-# Passing host, database name and port
-mongo = Leaf.connect(:mongo, "mongo", dbname, port=27017)
+# --- ex2
+# URI with authentication
+mongo = Leaf.connect(:mongo, dbname, "mongodb://user123:mypass@mongo:27017/?authSource=...&authMechanism=....")
 
-# --- ex3
-# URI with authentication and a database name
-mongo = Leaf.connect(:mongo, "mongodb://user123:mypass@mongo:27017/?authSource=...&authMechanism=....", dbname)
+# --- ex3:
+# URI via passing options: host and port
+mongo = Leaf.connect(:mongo, dbname, host="mongo", port=27017)
 
-# --- ex4
-# Passing a Mongoc.Client and a database name
-mongo = Leaf.connect(Mongoc.Client("mongo", 27017), dbname)
+# --- ex4:
+# URI via passing options: host and port
+mongo = Leaf.connect(:mongo, dbname, 
+    host="mongo", port=27017, username="user123", password="xpto", 
+    authSource = "...", authMecanism = "..."
+)
 
-# --- ex5
-# Passing a Mongoc Database directly
-mongo = Leaf.connect(Mongoc.Client("mongo", 27017)[dbname])
 ```
 
 ### How serialization and deserialization works

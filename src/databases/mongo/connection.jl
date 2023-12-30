@@ -14,19 +14,26 @@ Base.Symbol(::Type{<:MongoDB})  = :mongo
 connectionstring(db::MongoDB)   = "$(last(split(database(db).client.uri, "://"))) => $(database(db).name)"
 
 # Dispatcher for `connect` @ src/connections.jl
-function connect(::Type{MongoDB}, dbname::String, args...) ::Connection
-    mongoclient = mongo_client(args...)
+function connect(::Type{MongoDB}, dbname::String; kwargs...) ::Connection
+    mongoclient = mongo_client(;kwargs...)
     mongodb     = mongo_db(mongoclient, dbname)
     return Connection(MongoDB(mongodb))
 end
 
-function mongo_client(
+function connect(::Type{MongoDB}, dbname::String, uri::String) ::Connection
+    mongoclient = mongo_client(uri)
+    mongodb     = mongo_db(mongoclient, dbname)
+    return Connection(MongoDB(mongodb))
+end
+
+function mongo_client(;
     host         ::String = "localhost", 
     port         ::Int    =  27017, 
     username     ::String = "", 
     password     ::String = "", 
     authSource   ::String = "", 
-    authMechanism::String = ""
+    authMechanism::String = "",
+    kwargs...
 ) ::Mongoc.Client
     uri = """mongodb://"""
     if !isempty(username) && !isempty(password)
@@ -42,14 +49,14 @@ function mongo_client(
         uri *= "/?authMechanism=$authMechanism"
     end
     
+    return mongo_client(uri)
+end
+
+function mongo_client(uri::String) ::Mongoc.Client
     mongoclient = Mongoc.Client(uri)
-    try 
-        ping = Mongoc.ping(mongoclient)
-        if haskey(ping, "ok") && ping["ok"] == true
-            return mongoclient
-        end
-    catch err
-        @error "Mongo: Could not connect to database client" exception=(err, catch_backtrace())
+    ping = Mongoc.ping(mongoclient)
+    if haskey(ping, "ok") && ping["ok"] == true
+        return mongoclient
     end
     throw(ConnectionException("MongoDB server was not found -> $uri"))
 end
