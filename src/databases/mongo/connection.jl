@@ -5,48 +5,56 @@ struct MongoDB <: NoSQLDB
     database::Mongoc.Database
 end
 
-data_format(db::MongoDB)                   = Mongoc.BSON
-collection_names(db::MongoDB)              = Mongoc.get_collection_names(db.database)
+data_format(db::MongoDB)      = Mongoc.BSON
+collection_names(db::MongoDB) = Mongoc.get_collection_names(db.database)
 collection(db::MongoDB, ::Type{T}) where T = db.database[collection(T)]
-database(db::MongoDB)                      = db.database
+database(db::MongoDB)         = db.database
 # Symbol representation to allow `connect(:mongo, ...)`
-Base.Symbol(::Type{<:MongoDB})       = :mongo
-connectionstring(db::MongoDB) = "$(last(split(database(db).client.uri, "://"))) => $(database(db).name)"
-
-# ----- Connection API
-connect(db::Mongoc.Database)               = Connection(MongoDB(db))
-connect(client::Mongoc.Client, db::String) = connect(client[db])
+Base.Symbol(::Type{<:MongoDB})  = :mongo
+connectionstring(db::MongoDB)   = "$(last(split(database(db).client.uri, "://"))) => $(database(db).name)"
 
 # Dispatcher for `connect` @ src/connections.jl
-connect(::Type{MongoDB}, host::String, dbname::String; port::Int=27017) ::Connection  = connect(Mongoc.Client(host, port), dbname)
-
-# Dispatcher for `connect` @ src/connections.jl
-function connect(::Type{MongoDB}, host::String, username::String, password::String, dbname::String; 
-    port          = nothing, 
-    authSource    = nothing, 
-    authMechanism = nothing
-) ::Connection
-    
-    uri = geturi(host, username, password, port, authSource, authMechanism)
-    return Connection(Mongoc.Client(uri)[dbname])
+function connect(::Type{MongoDB}, dbname::String, args...) ::Connection
+    mongoclient = mongo_client(args...)
+    mongodb     = mongo_db(mongoclient, dbname)
+    return Connection(MongoDB(mongodb))
 end
 
-function geturi(host::String, username::String, password::String, port=nothing, authSource=nothing, authMechanism=nothing) ::String
-    uri = """mongodb://$username:$password@$host"""
-    if !isnothing(port)         
-        uri *= ":$port" 
+function mongo_client(
+    host         ::String = "localhost", 
+    port         ::Int    =  27017, 
+    username     ::String = "", 
+    password     ::String = "", 
+    authSource   ::String = "", 
+    authMechanism::String = ""
+) ::Mongoc.Client
+    uri = """mongodb://"""
+    if !isempty(username) && !isempty(password)
+        uri *= "$username:$password@" 
     end
-    if !isnothing(authSource)
+    uri *= "$host:$port"
+    if !isempty(authSource)
         uri *= "/?authSource=$authSource" 
     end
-    if !isnothing(authSource) &&  !isnothing(authMechanism)  
+    if !isempty(authSource) &&  !isempty(authMechanism)  
         uri *= "&authMechanism=$authMechanism" 
-    elseif !isnothing(authMechanism)
+    elseif !isempty(authMechanism)
         uri *= "/?authMechanism=$authMechanism"
     end
-    return uri
+    
+    mongoclient = Mongoc.Client(uri)
+    try 
+        ping = Mongoc.ping(mongoclient)
+        if haskey(ping, "ok") && ping["ok"] == true
+            return mongoclient
+        end
+    catch err
+        @error "Mongo: Could not connect to database client" exception=(err, catch_backtrace())
+    end
+    throw(ConnectionException("MongoDB server was not found -> $uri"))
 end
 
-include("utils.jl")
-include("crud.jl")
-include("gridfs.jl")
+function mongo_db(client::Mongoc.Client, database_name::String) ::Mongoc.Database
+    return client[database_name]
+end
+

@@ -76,4 +76,3 @@ function reset_data(operation::String="")
     @info "done."
 end
 
-reset_data()

@@ -21,10 +21,11 @@ collection(::Type{T}) where T               = @warn("Generic method to get a dat
 function validate(x) ::Bool return true end 
 
 # ---- CRUD
-include("connections.jl")                # ---- Database Connections API
-include("generic_crud.jl")               # ---- Generic CRUD API 
+include("exceptions.jl")   # ---- Runtime expections
+include("connections.jl")  # ---- Database Connections API
+include("generic_crud.jl") # ---- Generic CRUD API 
 
 # ---- Specific Database implemententations
-include("databases/mongo/connection.jl") # ---- Mongo
+include("databases/mongo.jl") # ---- Mongo
 
 end # module

@@ -192,11 +192,6 @@ end
 #  Redo after defining the Schema concept
 # ==============================================
 
-struct ValidateException <: Exception
-    msg::String
-end
-Base.showerror(io::IO, e::ValidateException) = print(io, e.msg, "!")
-
 function show_invalid_data(data::T, action::String) where T
     @info "--- Invalid data ---"
     @show data
