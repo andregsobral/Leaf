@@ -97,7 +97,6 @@ If you are creating or updating data, Leaf expects you to have defined `Base.con
 
 ```julia
 using Leaf
-using MongocUtils
 
 # ---- Example of how to setup conversion for a MongoDB database
 struct Thing
@@ -105,10 +104,6 @@ struct Thing
     amount ::Int
     status ::String
 end
-
-# ---- MongocUtils example
-Base.convert(::Type{Mongoc.BSON}, t::Thing) = Mongoc.BSON(t)
-Base.convert(::Type{Thing}, doc::Mongoc.BSON) = as_struct(Thing, doc)
 
 # ---- Specific Constructor example
 Base.convert(::Type{Mongoc.BSON}, t::Thing) = Mongoc.BSON("cust_id" => t.cust_id, "amount" => t.amount, "status" => t.status)
