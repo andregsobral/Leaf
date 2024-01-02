@@ -71,11 +71,11 @@ mongo = Leaf.connect(:mongo, dbname, "mongodb://mongo:27017")
 mongo = Leaf.connect(:mongo, dbname, "mongodb://user123:mypass@mongo:27017/?authSource=...&authMechanism=....")
 
 # --- ex3:
-# URI via passing options: host and port
+# URI via kwargs: host and port
 mongo = Leaf.connect(:mongo, dbname, host="mongo", port=27017)
 
 # --- ex4:
-# URI via passing options: host and port
+# URI via kwargs (all options)
 mongo = Leaf.connect(:mongo, dbname, 
     host="mongo", port=27017, username="user123", password="xpto", 
     authSource = "...", authMecanism = "..."
@@ -88,7 +88,7 @@ mongo = Leaf.connect(:mongo, dbname,
 Serialization and deserialization are based on Julia's native `Base.convert` .
 
 ```julia
-serialize(db::Database, business_data) = Base.convert(data_format(db), business_data)
+serialize(db::Database, business_data)   = Base.convert(data_format(db), business_data)
 deserialize(datatype::DataType, db_data) = Base.convert(datatype, db_data)
 ```
 If you are querying data, Leaf expects you to have defined a `Base.convert` from the database entry format to the Julia Type. `(ex: Mongoc.BSON -> Company)`
@@ -117,14 +117,14 @@ function Base.convert(::Type{Thing}, bson::Mongoc.BSON)
 end
 ```
 
-### How to associate a Type to a collection
+### Associate a type to a collection
 
 Overload method `Leaf.collection`
 ```julia
 Leaf.collection(::Type{Thing}) = "things"
 ```
 
-### Example: How to query data
+### How to query data
 
 After establishing a connection and defining types and collections we can now query data by using the CRUD API
 
@@ -185,3 +185,7 @@ mongo.delete(Thing, status = "Mint")
 #### Additional Test and examples
 
 Additional examples available under `/test/mongo/tests.jl`
+
+#### Going forward
+
+My goal is to eventually adapt this approach to various database types instead of only MongoDB.
