@@ -5,15 +5,25 @@
 struct Connection
     database :: Database
 end
-const DBCONN = Ref{Connection}()
-globalconn!(conn::Connection)      = DBCONN[] = conn
-connectionstring(conn::Connection) = connectionstring(db(conn))
 
-db(conn::Connection)                    = conn.database
-collection_names(conn::Connection)      = collection_names(db(conn))
+db(conn::Connection)  = conn.database
+connectionstring(conn::Connection) = uri(db(conn))
+database(conn::Connection)         = database(db(conn))
+collection_names(conn::Connection) = collection_names(db(conn))
 collection(conn::Connection, ::Type{T}) where T = collection(db(conn), T)
-database(conn::Connection)              = database(db(conn))
 
+# ============================================================================
+#  Global Connection interface
+# ============================================================================
+
+const DBCONN = Ref{Connection}()
+
+# --- Setting a global connection
+function globalconn!(conn::Connection)
+    DBCONN[] = conn
+end
+
+# --- Getting a global connection
 function globalconn()
     try 
         return DBCONN[]
@@ -21,11 +31,10 @@ function globalconn()
         return nothing
     end
 end
-
-connectionstring() = connectionstring(db(globalconn()))
-db()               = db(globalconn())
-collection_names() = collection(globalconn())
+db()  = db(globalconn())
+connectionstring() = connectionstring(globalconn())
 database()         = database(globalconn())
+collection_names() = collection(globalconn())
 
 # each Database subtype should provide its Symbol representation
 Base.Symbol(::Type{D}) where D<:Database = @error("Abstract type Database does not provide a symbolic representation. Base.Symbol should be implemented for type $D")
