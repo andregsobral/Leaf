@@ -104,10 +104,17 @@ struct Thing
     amount ::Int
     status ::String
 end
-
-# ---- Specific Constructor example
-Base.convert(::Type{Mongoc.BSON}, t::Thing) = Mongoc.BSON("cust_id" => t.cust_id, "amount" => t.amount, "status" => t.status)
-Base.convert(::Type{Thing}, t::Mongoc.BSON) = Thing(t["cust_id"], t["amount"], t["status"])
+# ---- Define converters
+function Base.convert(::Type{Mongoc.BSON}, thing::Thing)
+    return Mongoc.BSON(
+        "cust_id" => thing.cust_id, 
+        "amount"  => thing.amount, 
+        "status"  => thing.status
+    )
+end
+function Base.convert(::Type{Thing}, bson::Mongoc.BSON)
+    return Thing(bson["cust_id"], bson["amount"], bson["status"])
+end
 ```
 
 ### How to associate a Type to a collection
