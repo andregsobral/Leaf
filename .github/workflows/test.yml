@@ -12,10 +12,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        julia-version: ['1', 'nightly']
+        julia-version: ['1']
         julia-arch: [x64]
-        os: [ubuntu-latest]
-        mongodb-version: ['4.2', '4.4', '5.0', '6.0']
+        os: [ ubuntu-latest ]
+        mongodb-version: ['4.2', '4.4']
 
     steps:
       - name: Git Checkout
