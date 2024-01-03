@@ -15,14 +15,27 @@ jobs:
         julia-version: ['1', 'nightly']
         julia-arch: [x64]
         os: [ubuntu-latest]
+        mongodb-version: ['4.2', '4.4', '5.0', '6.0']
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - name: Git Checkout
+        uses: actions/checkout@v2
+
+      - name: Julia setup
+        uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
           arch: ${{ matrix.julia-arch }}
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+      
+      - name: Build Julia Project
+        uses: julia-actions/julia-buildpkg@v1
+
+      - name: Run Julia Project
+        uses: julia-actions/julia-runtest@v1
         # with:
         #   annotate: true
