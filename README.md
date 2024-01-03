@@ -25,29 +25,31 @@ create()
 
 Other auxiliary methods also serve to increase the flexibility of database interactivity:
 
-```
+```julia
 # Auxiliar Operations
-*** aggregate
 
-An aggregation consists of one or more stages that process entries.
+aggregate()
 
-- Each stage performs an operation on the input entries. For example, a stage can filter entries, group based on a condition, and calculate values.
+# An aggregation consists of one or more stages that process entries.
 
-- The entries that are output from a stage are passed to the next stage.
+#- Each stage performs an operation on the input entries. For example, a stage can filter entries, group based on a condition, and calculate values.
 
-- An aggregation can return results for groups of entries such as, return the total, average, maximum, and minimum values.  
+#- The entries that are output from a stage are passed to the next stage.
 
-*** count
+#- An aggregation can return results for groups of entries such as, return the total, average, maximum, and minimum values.  
 
-Count the number of entries of a collection or table.
+count()
 
-*** drop
+# Count the number of entries of a collection or table.
 
-Destroy a collection or table, i.e, all data associated with that collection is deleted.  
+drop()
 
-*** raw
+# Destroy a collection or table, i.e, all data associated with that collection is deleted.  
 
-Allows the execution of queries that do not fall under the CRUD designation.
+raw()
+
+# Allows the execution of queries that do not fall under the CRUD designation.
+
 ```
 ----
 
@@ -62,23 +64,23 @@ dbname = "leaf_testing"
 
 # --- ex1:
 # Simple URI
-mongo = Leaf.connect(:mongo, "mongodb://mongo:27017", dbname)
+mongo = Leaf.connect(:mongo, dbname, "mongodb://mongo:27017")
 
-# --- ex2:
-# Passing host, database name and port
-mongo = Leaf.connect(:mongo, "mongo", dbname, port=27017)
+# --- ex2
+# URI with authentication
+mongo = Leaf.connect(:mongo, dbname, "mongodb://user123:mypass@mongo:27017/?authSource=...&authMechanism=....")
 
-# --- ex3
-# URI with authentication and a database name
-mongo = Leaf.connect(:mongo, "mongodb://user123:mypass@mongo:27017/?authSource=...&authMechanism=....", dbname)
+# --- ex3:
+# URI via kwargs: host and port
+mongo = Leaf.connect(:mongo, dbname, host="mongo", port=27017)
 
-# --- ex4
-# Passing a Mongoc.Client and a database name
-mongo = Leaf.connect(Mongoc.Client("mongo", 27017), dbname)
+# --- ex4:
+# URI via kwargs (all options)
+mongo = Leaf.connect(:mongo, dbname, 
+    host="mongo", port=27017, username="user123", password="xpto", 
+    authSource = "...", authMecanism = "..."
+)
 
-# --- ex5
-# Passing a Mongoc Database directly
-mongo = Leaf.connect(Mongoc.Client("mongo", 27017)[dbname])
 ```
 
 ### How serialization and deserialization works
@@ -86,7 +88,7 @@ mongo = Leaf.connect(Mongoc.Client("mongo", 27017)[dbname])
 Serialization and deserialization are based on Julia's native `Base.convert` .
 
 ```julia
-serialize(db::Database, business_data) = Base.convert(data_format(db), business_data)
+serialize(db::Database, business_data)   = Base.convert(data_format(db), business_data)
 deserialize(datatype::DataType, db_data) = Base.convert(datatype, db_data)
 ```
 If you are querying data, Leaf expects you to have defined a `Base.convert` from the database entry format to the Julia Type. `(ex: Mongoc.BSON -> Company)`
@@ -95,7 +97,6 @@ If you are creating or updating data, Leaf expects you to have defined `Base.con
 
 ```julia
 using Leaf
-using MongocUtils
 
 # ---- Example of how to setup conversion for a MongoDB database
 struct Thing
@@ -103,30 +104,33 @@ struct Thing
     amount ::Int
     status ::String
 end
-
-# ---- MongocUtils example
-Base.convert(::Type{Mongoc.BSON}, t::Thing) = Mongoc.BSON(t)
-Base.convert(::Type{Thing}, doc::Mongoc.BSON) = as_struct(Thing, doc)
-
-# ---- Specific Constructor example
-Base.convert(::Type{Mongoc.BSON}, t::Thing) = Mongoc.BSON("cust_id" => t.cust_id, "amount" => t.amount, "status" => t.status)
-Base.convert(::Type{Thing}, t::Mongoc.BSON) = Thing(t["cust_id"], t["amount"], t["status"])
+# ---- Define converters
+function Base.convert(::Type{Mongoc.BSON}, thing::Thing)
+    return Mongoc.BSON(
+        "cust_id" => thing.cust_id, 
+        "amount"  => thing.amount, 
+        "status"  => thing.status
+    )
+end
+function Base.convert(::Type{Thing}, bson::Mongoc.BSON)
+    return Thing(bson["cust_id"], bson["amount"], bson["status"])
+end
 ```
 
-### How to associate a Type to a collection
+### Associate a type to a collection
 
 Overload method `Leaf.collection`
 ```julia
 Leaf.collection(::Type{Thing}) = "things"
 ```
 
-### Example: How to query data
+### How to query data
 
 After establishing a connection and defining types and collections we can now query data by using the CRUD API
 
 ```julia
 # Create a Connection
-mongo = Leaf.connect(:mongo, "mongo", "leaf_testing", port=27017)
+mongo = Leaf.connect(:mongo, "leaf_testing", host="mongo", port=27017)
 # --------------------------------------------------------------
 # ---- Define type Thing + Base.convert, as seen above.... -----
 # --------------------------------------------------------------
@@ -181,3 +185,7 @@ mongo.delete(Thing, status = "Mint")
 #### Additional Test and examples
 
 Additional examples available under `/test/mongo/tests.jl`
+
+#### Going forward
+
+My goal is to eventually adapt this approach to various database types instead of only MongoDB.

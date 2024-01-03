@@ -1,7 +1,7 @@
 name = "Leaf"
 uuid = "478b0e31-1ae9-474f-92e6-761f889703c9"
 authors = ["agoncalves035 <andre.sobral.goncalves@pwc.com>"]
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
