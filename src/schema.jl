@@ -1,78 +1,66 @@
-abstract type AbstractSchema end
+abstract type Schema end
 # --- Overload if a schema has been defined 
 schema(x)      = nothing
 schema_type(x) = nothing
+is_schema(x)   = typeof(x) <: Schema 
 
-struct Validator
-    policy ::Dict{Symbol, Function}
-    data
-
-    function Validator(policy::Dict, data)
-        return new(Dict(Symbol(k)=>v for (k,v) in policy), data)
-    end
-end
-
-function DataPolicy(::Type{<:AbstractSchema})
+function DataPolicy(::Type{<:Schema})
     return Dict{Symbol, Function}()
 end
 
 function DataPolicy(x)
     stype = schema_type(x)
-    return !isnothing(stype) && stype <: AbstractSchema ? 
+    return !isnothing(stype) && stype <: Schema ? 
         DataPolicy(stype) : 
-        DataPolicy(AbstractSchema)
+        DataPolicy(Schema)
 end
 
-function Validator(T::Type{<:AbstractSchema}; kwargs...)
+# --- Relates the policy to the data and verifies the established conditions 
+struct Validator
+    policy ::Dict{Symbol, Function}
+    data
+    Validator(policy::Dict,  data) = new(Dict(Symbol(k)=>v for (k,v) in policy),  data)
+    Validator(policy::Array, data) = new(Dict(first(p)=>last(p) for p in policy), data)
+end
+requirements(v::Validator) = collect(keys(policy(v)))
+policy(v::Validator)       = v.policy
+policy_data(v::Validator)  = v.data
+Base.isempty(v::Validator) = isempty(v.policy)
+
+function Validator(T::Type{<:Schema}; kwargs...)
     return Validator(DataPolicy(T), Dict(kwargs))
 end
 
-function policy_verifier(v::Validator, field::Symbol)
-    return haskey(v.policy, field) ? v.policy[field] : nothing
-end
-
-function isvalid(schema::T; metadata...) where T <: AbstractSchema
+function isvalid(schema::T; metadata...) where T <: Schema
+    # --- stores data policy and metadata
     policy = Validator(T ; metadata...)
-    for f in fieldnames(T)
-        val = getfield(schema, f)
-        if !isvalid(policy, f, val)
+    # --- Verify that each policy condition is ok
+    for field in requirements(policy)
+        val = getfield(schema, field)
+        if !isvalid(policy, field, val)
             return false
         end
     end
+    # --- All conditions have passed, or there is nothing to check
     return true
 end
 
-function isvalid(::Type{T}, field::Symbol, val; metadata...) ::Bool where T <: AbstractSchema
-    policy = Validator(T; metadata...)
+function isvalid(::Type{T}, field::Symbol, val; metadata...) ::Bool where T <: Schema
+    policy = Validator(T; metadata...) # --- stores data policy and metadata
+    if isempty(policy) return true end # --- Nothing to check
     return isvalid(policy, f, val)
 end
 
-function isvalid(policy::Validator, field::Symbol, val) ::Bool
-    validation_func = policy_verifier(policy, field)
-    if !isnothing(validation_func)
-        return validation_func(val, policy.data)
+function isvalid(verifier::Validator, field::Symbol, val) ::Bool
+    # -- Field is subject to some verification
+    policy = policy(verifier)
+    if haskey(policy, field)
+        func = policy[field]
+        return func(val, policy_data(policy))    
     end
+    # -- No verification needed
     return true
 end
-
-
-struct Company
-    name ::String
-    address::String
-end
-
-struct CompanySchema <: AbstractSchema
-    name ::String
-    address::String
-end
-schema(x::Company)           = CompanySchema(x.name, x.address)
-schema_type(::Type{Company}) = CompanySchema
-DataPolicy(::Type{CompanySchema}) = Dict(
-    :name    => ((x,y)-> (length(x) > 5)),
-    :address => ((x,y)-> (length(x) > 5))
-)
-
-c  = Company("PwC PT", "Lisboa")
-cs = schema(c)
-
-
+# --- Overloads for String format
+isvalid(::Type{T}, field::String, val; metadata...) where T <: Schema = isvalid(T, Symbol(field), val; metadata...)
+isvalid(verifier::Validator, field::String, val)    ::Bool            = isvalid(verifier, Symbol(field), val)

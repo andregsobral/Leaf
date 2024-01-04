@@ -21,8 +21,9 @@ collection(::Type{T}) where T               = @warn("Generic method to get a dat
 function validate(x) ::Bool return true end 
 
 # ---- CRUD
-include("exceptions.jl")   # ---- Runtime expections
+include("exceptions.jl")   # ---- Runtime exceptions
 include("connections.jl")  # ---- Database Connections API
+include("schema.jl")       # ---- Schema support
 include("generic_crud.jl") # ---- Generic CRUD API 
 
 # ---- Specific Database implemententations
