@@ -1,5 +1,7 @@
 module Leaf
 
+using  Revise
+
 # --- Available Generic CRUD methods
 export find,   find_one
 export update, update_one
@@ -23,7 +25,8 @@ function validate(x) ::Bool return true end
 # ---- CRUD
 include("exceptions.jl")   # ---- Runtime exceptions
 include("connections.jl")  # ---- Database Connections API
-include("schema.jl")       # ---- Schema support
+include("schema/schema_and_policy.jl") # ---- Schema support
+include("schema/validations.jl")       # ---- Schema support
 include("generic_crud.jl") # ---- Generic CRUD API 
 
 # ---- Specific Database implemententations

@@ -1,34 +1,20 @@
-abstract type Schema end
-# --- Overload if a schema has been defined 
-schema(x)      = nothing
-schema_type(x) = nothing
-is_schema(x)   = typeof(x) <: Schema 
-
-function DataPolicy(::Type{<:Schema})
-    return Dict{Symbol, Function}()
-end
-
-function DataPolicy(x)
-    stype = schema_type(x)
-    return !isnothing(stype) && stype <: Schema ? 
-        DataPolicy(stype) : 
-        DataPolicy(Schema)
-end
-
 # --- Relates the policy to the data and verifies the established conditions 
 struct Validator
     policy ::Dict{Symbol, Function}
     data
-    Validator(policy::Dict,  data) = new(Dict(Symbol(k)=>v for (k,v) in policy),  data)
-    Validator(policy::Array, data) = new(Dict(first(p)=>last(p) for p in policy), data)
+    schematype ::DataType
 end
-requirements(v::Validator) = collect(keys(policy(v)))
-policy(v::Validator)       = v.policy
-policy_data(v::Validator)  = v.data
+requirements(v::Validator) = collect(keys(v.policy))
 Base.isempty(v::Validator) = isempty(v.policy)
+# TODO: Not being used for anything, which options to overload by schematype?
+schema_type(v::Validator)  = v.schematype
 
 function Validator(T::Type{<:Schema}; kwargs...)
-    return Validator(DataPolicy(T), Dict(kwargs))
+    policy = DataPolicy(T)
+    if isnothing(policy)
+        policy = Dict{Symbol, Function}()
+    end
+    return Validator(policy, Dict(kwargs), T)
 end
 
 function isvalid(schema::T; metadata...) where T <: Schema
@@ -53,10 +39,10 @@ end
 
 function isvalid(verifier::Validator, field::Symbol, val) ::Bool
     # -- Field is subject to some verification
-    policy = policy(verifier)
+    policy = verifier.policy
     if haskey(policy, field)
         func = policy[field]
-        return func(val, policy_data(policy))    
+        return func(val, verifier.data)
     end
     # -- No verification needed
     return true
