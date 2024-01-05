@@ -7,7 +7,52 @@ end
 Leaf.schema(x::House)           = HouseSchema(x.address, x.city, x.country)
 Leaf.schema_type(::Type{House}) = HouseSchema
 
-@testset "schema" begin
+@testset "schema: DataPolicy" begin
+    println("========== schema: DataPolicy ===========")
+
+    # --- No policy has been defined for the HouseSchema
+    @test isnothing(Leaf.DataPolicy(HouseSchema))
+    @test isnothing(Leaf.delete_policy!(HouseSchema))
+    # defines new policy: using Dict interface
+    Leaf.DataPolicy!(HouseSchema, Dict(
+        :address => (fval, args)-> length(fval) > 5),
+    )
+    policy = Leaf.DataPolicy(HouseSchema)
+    @test !isempty(policy) && haskey(policy, :address) && length(keys(policy)) == 1
+    # --- reset policy
+    Leaf.delete_policy!(HouseSchema)
+    @test isnothing(Leaf.DataPolicy(HouseSchema))
+
+    # defines new policy: using Array interface
+    Leaf.DataPolicy!(HouseSchema, [
+        :address => ((fval, args)-> length(fval) > 5),
+        :city    => ((fval, args)-> haskey(args, :cities)    ? fval in args[:cities]    : false),
+        :country => ((fval, args)-> haskey(args, :countries) ? fval in args[:countries] : false),
+    ])
+    policy = Leaf.DataPolicy(HouseSchema)
+    @test !isempty(policy) && haskey(policy, :address) && haskey(policy, :city) && haskey(policy, :country) && length(keys(policy)) == 3
+
+    # --- reset policy
+    Leaf.delete_policy!(HouseSchema)
+    @test isnothing(Leaf.DataPolicy(HouseSchema))
+
+    # defines new policy: using kwargs interface
+    Leaf.DataPolicy!(HouseSchema,
+        address = ((fval, args)-> length(fval) > 5),
+        city    = ((fval, args)-> haskey(args, :cities)    ? fval in args[:cities]    : false),
+        country = ((fval, args)-> haskey(args, :countries) ? fval in args[:countries] : false),
+    )
+    policy = Leaf.DataPolicy(HouseSchema)
+    @test !isempty(policy) && haskey(policy, :address) && haskey(policy, :city) && haskey(policy, :country) && length(keys(policy)) == 3
+    
+    # --- reset policy
+    Leaf.delete_policy!(HouseSchema)
+    @test isnothing(Leaf.DataPolicy(HouseSchema))
+end
+
+
+@testset "schema: creation and validation" begin
+    println("========== schema: creation and validation ===========")
     # --- data
     h1 = House("Rua Manuel Ferreira de Andrade", "Lisboa", "PT")
     h2 = House("tiny", "Lisboa", "PT")

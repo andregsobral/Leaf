@@ -1,5 +1,7 @@
 module Leaf
 
+using Mongoc
+using JSON
 using  Revise
 
 # --- Available Generic CRUD methods

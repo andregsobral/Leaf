@@ -15,6 +15,7 @@ include("dummy_data.jl")
 reset_data()
 
 @testset "CRUD Mongo" begin
+    include(joinpath("test", "schema.jl"))
     include(joinpath("test", "connections.jl"))
     include(joinpath("test", "crud", "find.jl"))
     include(joinpath("test", "crud", "create.jl"))
