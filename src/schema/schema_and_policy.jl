@@ -9,9 +9,19 @@ end
 # --- Overload if a schema has been defined 
 schema(x)      = nothing
 schema_type(x) = nothing
+schema_metadata(x) = Dict()
 # --- Logic Checkers
-is_schema(x)   = typeof(x) <: Schema
-has_schema(x)  = !isnothing(schema_type(x)) && is_schema(schema_type(x)) 
+function is_schema(::Type{T}) ::Bool where T 
+    return T <: Schema # If the user passes a type directly
+end
+
+function has_schema(::Type{T}) ::Bool where T
+    s_type = schema_type(T)
+    return is_schema(s_type)
+end
+
+is_schema(x)  ::Bool = is_schema(typeof(x))  # If the user passes an object
+has_schema(x) ::Bool = has_schema(typeof(x)) # If the user passes an object
 
 const _DATA_POLICIES_ = Dict{String, Dict}()
 function policies()
@@ -30,6 +40,9 @@ function DataPolicy!(T::Type{<:Schema}; kwargs...)
     return DataPolicy!(T, Dict(kwargs))
 end
 # --- Modifiers: Delete Policy
+function clear_policy!(T::Type{<:Schema})
+    DataPolicy!(T, Dict())
+end
 function delete_policy!(T::Type{<:Schema})
     if policy_exists(T)
         schema_name = string(T)

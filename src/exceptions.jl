@@ -1,9 +1,17 @@
-struct ConnectionException <: Exception
-    msg::String
-end
+abstract type LeafException <: Exception end
 
-struct ValidateException <: Exception
+struct ConnectionException <: LeafException
     msg::String
 end
-Base.showerror(io::IO, e::ConnectionException) = print(io, e.msg)
-Base.showerror(io::IO, e::ValidateException) = print(io, e.msg, "!")
+struct ValidationException <: LeafException
+    msg::String
+    field::Symbol
+    val
+    schema::DataType
+end
+function ValidationException(field::Symbol, val, T::DataType)
+    msg = "Invalid '$(T)' object:\n [$T.$field]: '$val'\n Value does not comply with the schema's data policy for field '$field'"
+    return ValidationException(msg, field, val, T)
+end
+# --- Generic Leaf.Exception show error
+Base.showerror(io::IO, e::LeafException) = print(io, e.msg)

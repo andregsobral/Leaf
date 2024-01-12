@@ -2,7 +2,7 @@ module Leaf
 
 using Mongoc
 using JSON
-using  Revise
+using Revise
 
 # --- Available Generic CRUD methods
 export find,   find_one
