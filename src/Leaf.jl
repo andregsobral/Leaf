@@ -1,5 +1,9 @@
 module Leaf
 
+using Mongoc
+using JSON
+using Revise
+
 # --- Available Generic CRUD methods
 export find,   find_one
 export update, update_one
@@ -21,8 +25,10 @@ collection(::Type{T}) where T               = @warn("Generic method to get a dat
 function validate(x) ::Bool return true end 
 
 # ---- CRUD
-include("exceptions.jl")   # ---- Runtime expections
+include("exceptions.jl")   # ---- Runtime exceptions
 include("connections.jl")  # ---- Database Connections API
+include("schema/schema_and_policy.jl") # ---- Schema support
+include("schema/validations.jl")       # ---- Schema support
 include("generic_crud.jl") # ---- Generic CRUD API 
 
 # ---- Specific Database implemententations

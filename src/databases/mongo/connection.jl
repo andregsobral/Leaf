@@ -1,5 +1,3 @@
-using Mongoc
-using JSON
 
 struct MongoDB <: NoSQLDB
     database::Mongoc.Database

@@ -15,7 +15,9 @@ include("dummy_data.jl")
 reset_data()
 
 @testset "CRUD Mongo" begin
+    # --- Connection to assets
     include(joinpath("test", "connections.jl"))
+    # --- CRUD operations
     include(joinpath("test", "crud", "find.jl"))
     include(joinpath("test", "crud", "create.jl"))
     include(joinpath("test", "crud", "delete.jl"))
@@ -24,4 +26,10 @@ reset_data()
     include(joinpath("test", "crud", "count.jl"))
     include(joinpath("test", "crud", "raw.jl"))
     include(joinpath("test", "crud", "drop.jl"))
+    # --- Schema and CRUD operations with schema
+    include(joinpath("test", "schema", "structs.jl"))
+    include(joinpath("test", "schema", "policy.jl"))
+    include(joinpath("test", "schema", "schema.jl"))
+    include(joinpath("test", "schema", "create_with_schema.jl"))
+    include(joinpath("test", "schema", "update_with_schema.jl"))
 end

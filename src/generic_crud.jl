@@ -31,45 +31,43 @@ function delete_one(conn::Connection, ::Type{T}, query; options = nothing) where
     return delete_one(collection(conn, T), qry, options = qry_opts)
 end
 
-function create(conn::Connection, data::T; options = nothing) where T
-    assert_valid_data(data, "create")
+function create(conn::Connection, obj::T; options = nothing) where T
+    data    = validate_data(obj)
     db_data = serialize(conn, data)
     return create(collection(conn, T), db_data)
 end
  
 function create(conn::Connection, data::Vector{T}; options = nothing) where T
-    assert_valid_data(data, "create")
-    db_data = [serialize(conn, entry) for entry in data]
+    db_data = [serialize(conn, validate_data(entry)) for entry in data]
     return create(collection(conn, T), db_data, options = parse_options(conn, options))
 end
 
-function update(conn::Connection, ::Type{T}, data, query; options = nothing) where T
+function update(conn::Connection, ::Type{T}, data::Dict, query; options = nothing) where T
     qry, qry_opts = parse_input(conn, T, query, options)
-    db_data = serialize(conn, data)
+    db_data = serialize(conn, validate_data(T, data))
     return update(collection(conn, T), db_data, qry, options = qry_opts)
 end
 
-function update(conn::Connection, ::Type{T}, pipeline::Union{String,Dict}, query; options = nothing) where T
+function update(conn::Connection, ::Type{T}, pipeline::String, query; options = nothing) where T
     qry, qry_opts = parse_input(conn, T, query, options)
     return update(collection(conn, T), pipeline, qry, options = qry_opts)
 end
 
-function update_one(conn::Connection, ::Type{T}, data, query; options = nothing) where T
-    qry, qry_opts = parse_input(conn, T, query, options)
-    db_data = serialize(conn, data)
-    return update_one(collection(conn, T), db_data, qry, options = qry_opts)
-end
-
-function update_one(conn::Connection, ::Type{T}, pipeline::Union{String,Dict}, query; options = nothing) where T
-    qry, qry_opts = parse_input(conn, T, query, options)
-    return update_one(collection(conn, T), pipeline, qry, options = qry_opts)
-end
-
 function update_one(conn::Connection, data::T, query; options = nothing) where T
     qry, qry_opts = parse_input(conn, T, query, options)
-    assert_valid_data(data, "update")
-    db_data = serialize(conn, data)
+    db_data = serialize(conn, validate_data(data))
     return update_one(collection(conn, T), db_data, qry, options = qry_opts)
+end
+
+function update_one(conn::Connection, ::Type{T}, data::Dict, query; options = nothing) where T
+    qry, qry_opts = parse_input(conn, T, query, options)
+    db_data = serialize(conn, validate_data(T, data))
+    return update_one(collection(conn, T), db_data, qry, options = qry_opts)
+end
+ 
+function update_one(conn::Connection, ::Type{T}, pipeline::String, query; options = nothing) where T
+    qry, qry_opts = parse_input(conn, T, query, options)
+    return update_one(collection(conn, T), pipeline, qry, options = qry_opts)
 end
 
 function count(conn::Connection, ::Type{T}, query; options = nothing) where T
@@ -189,15 +187,21 @@ function deserialize(::Type{T}, db_data) where T
 end
 
 # ==============================================
-#  Redo after defining the Schema concept
+#   Data validation helpers
 # ==============================================
 
-function show_invalid_data(data::T, action::String) where T
-    @info "--- Invalid data ---"
-    @show data
-    @info "--------------------"
-    throw(ValidateException("Tried to $action an invalid $(T) in the database"))
+function validate_data(data::T) where T
+    if has_schema(data)
+        sch_data = schema(data)
+        isvalid(sch_data)
+        return sch_data
+    end
+    return data
 end
 
-assert_valid_data(data,        action::String) = !validate(data) ? show_invalid_data(data, action) : true
-assert_valid_data(data::Array, action::String) = [ assert_valid_data(entry, action) for entry in data ]
+function validate_data(::Type{T}, data::Dict) where T
+    if has_schema(T)
+        [ isvalid(schema_type(T), field, val) for (field, val) in data ]
+    end
+    return data
+end
