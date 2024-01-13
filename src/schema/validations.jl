@@ -38,19 +38,19 @@ function isvalid(::Type{T}, field::Symbol, val; metadata...) ::Bool where T <: S
     # integrity checks
     # --- The field must be in the Schema
     if !(field in fieldnames(T)) 
-        msg = "Invalid $T: Field '$field' is not a valid field name"
+        msg = "Invalid $T: Field '$field' is not present in schema"
         throw(ValidationException(msg, field, val, T))
     end
     # --- The value type must match with the Schema field type
-    if typeof(val) <: fieldtype(T, field) 
-        msg = "Invalid $T.$field: $(typeof(val)) does not match the schema's corresponding field type '$(fieldtype(T, field))'"
+    if !(typeof(val) <: fieldtype(T, field)) 
+        msg = "Invalid $T.$field: value with type '$(typeof(val))' does not match the schema's corresponding field type '$(fieldtype(T, field))'"
         throw(ValidationException(msg, field, val, T)) 
     end
     # Policy check
     policy = Validator(T; metadata...) # --- stores data policy and metadata
     if isempty(policy) return true end # --- Nothing to check
     # Check policy for field validation
-    if !isvalid(policy, f, val)
+    if !isvalid(policy, field, val)
         throw(ValidationException(field, val, T))
     end
     return true

@@ -42,32 +42,32 @@ function create(conn::Connection, data::Vector{T}; options = nothing) where T
     return create(collection(conn, T), db_data, options = parse_options(conn, options))
 end
 
-function update(conn::Connection, ::Type{T}, data, query; options = nothing) where T
+function update(conn::Connection, ::Type{T}, data::Dict, query; options = nothing) where T
     qry, qry_opts = parse_input(conn, T, query, options)
     db_data = serialize(conn, validate_data(T, data))
     return update(collection(conn, T), db_data, qry, options = qry_opts)
 end
 
-function update(conn::Connection, ::Type{T}, pipeline::Union{String,Dict}, query; options = nothing) where T
+function update(conn::Connection, ::Type{T}, pipeline::String, query; options = nothing) where T
     qry, qry_opts = parse_input(conn, T, query, options)
     return update(collection(conn, T), pipeline, qry, options = qry_opts)
-end
-
-function update_one(conn::Connection, ::Type{T}, data, query; options = nothing) where T
-    qry, qry_opts = parse_input(conn, T, query, options)
-    db_data = serialize(conn, validate_data(T, data))
-    return update_one(collection(conn, T), db_data, qry, options = qry_opts)
-end
- 
-function update_one(conn::Connection, ::Type{T}, pipeline::Union{String,Dict}, query; options = nothing) where T
-    qry, qry_opts = parse_input(conn, T, query, options)
-    return update_one(collection(conn, T), pipeline, qry, options = qry_opts)
 end
 
 function update_one(conn::Connection, data::T, query; options = nothing) where T
     qry, qry_opts = parse_input(conn, T, query, options)
     db_data = serialize(conn, validate_data(data))
     return update_one(collection(conn, T), db_data, qry, options = qry_opts)
+end
+
+function update_one(conn::Connection, ::Type{T}, data::Dict, query; options = nothing) where T
+    qry, qry_opts = parse_input(conn, T, query, options)
+    db_data = serialize(conn, validate_data(T, data))
+    return update_one(collection(conn, T), db_data, qry, options = qry_opts)
+end
+ 
+function update_one(conn::Connection, ::Type{T}, pipeline::String, query; options = nothing) where T
+    qry, qry_opts = parse_input(conn, T, query, options)
+    return update_one(collection(conn, T), pipeline, qry, options = qry_opts)
 end
 
 function count(conn::Connection, ::Type{T}, query; options = nothing) where T
@@ -201,7 +201,7 @@ end
 
 function validate_data(::Type{T}, data::Dict) where T
     if has_schema(T)
-        [ isvalid(T, field, val) for (field, val) in data ]
+        [ isvalid(schema_type(T), field, val) for (field, val) in data ]
     end
     return data
 end

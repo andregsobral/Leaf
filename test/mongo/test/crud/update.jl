@@ -1,11 +1,14 @@
+function pipeline_setter(field, val)
+    return typeof(val) <: String ?
+        """{"\$set": {"$field":"$val"}}""" :
+        """{"\$set": {"$field": $val}}"""
+end
+
 @testset "update  " begin
     println("========== Mongo: update     ===========")
     # ----- modify 1 entry
     c = Company("PT01", "Petro, S.A.", "PT", "EUR", 2000, nothing, "COMP_PT")
     
-    # ----- modify 1 entry, using another interface
-    pipeline_setter = ((x,y) -> Dict("\$set" => Dict(x => y)))
-
     # update all entries
     new_capital = 4999
     new_data    = pipeline_setter("capital", new_capital)

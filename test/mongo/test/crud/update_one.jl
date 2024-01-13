@@ -3,7 +3,6 @@
 
     id = "PT01"
     c = Company(id, "Petro, S.A.", "PT", "EUR", 2000, nothing, "COMP_PT")
-    pipeline_setter = ((x,y) -> Dict("\$set" => Dict(x => y)))
 
     # ----- modify 1 entry
     result = mongo.update_one(c)
@@ -33,7 +32,6 @@
     @test result.modifiedCount == 0 && result.matchedCount  == 1
 
     # ----- modify 1 entry, using another interface
-    pipeline_setter = ((x,y) -> Dict("\$set" => Dict(x => y)))
     new_capital = 3000
     new_data    = pipeline_setter("capital", new_capital)
     result = mongo.update_one(Company, new_data, Dict("_id" => "PT01"))
@@ -52,19 +50,10 @@
     @test result.modifiedCount == 1 && result.matchedCount  == 1 && result.upsertedCount == 0
     @test mongo.find_one(Company, _id = "PT01").capital == new_capital
     
-    result = mongo.update_one(Attribute, 
-        """{"\$unset" : {"attrs.address": ""}}""",
-        name = "1" 
-    )
+    result = mongo.update_one(Attribute, """{"\$unset" : {"attrs.address": ""}}""", name = "1")
     @test result.modifiedCount == 1 && result.matchedCount  == 1 && result.upsertedCount == 0
 
-    result = mongo.update_one(Attribute, 
-        Dict("\$unset" => Dict("attrs.address" => "")),
-        name = "1" 
-    )
-    @test result.modifiedCount == 0 && result.matchedCount  == 1 && result.upsertedCount == 0
-
-    result = mongo.update_one(Attribute, Dict("\$unset" => Dict("attrs.address" => "")))
+    result = mongo.update_one(Attribute, """{"\$unset": {"attrs.address": ""}}""", name = "1" )
     @test result.modifiedCount == 0 && result.matchedCount  == 1 && result.upsertedCount == 0
 
     result = mongo.update_one(Attribute, """{"\$unset" : {"attrs.address": ""}}""")
