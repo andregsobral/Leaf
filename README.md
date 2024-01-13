@@ -29,25 +29,19 @@ Other auxiliary methods also serve to increase the flexibility of database inter
 # Auxiliar Operations
 
 aggregate()
-
-# An aggregation consists of one or more stages that process entries.
-
-#- Each stage performs an operation on the input entries. For example, a stage can filter entries, group based on a condition, and calculate values.
-
-#- The entries that are output from a stage are passed to the next stage.
-
-#- An aggregation can return results for groups of entries such as, return the total, average, maximum, and minimum values.  
+# An aggregation consists of one or more stages that process entries.«
+# - Each stage performs an operation on the input entries. 
+# For example, a stage can filter entries, group based on a condition, and calculate values.
+# - The entries that are output from a stage are passed to the next stage.
+# - An aggregation can return results for groups of entries such as, return the total, average, maximum, and minimum values.  
 
 count()
-
 # Count the number of entries of a collection or table.
 
 drop()
-
 # Destroy a collection or table, i.e, all data associated with that collection is deleted.  
 
 raw()
-
 # Allows the execution of queries that do not fall under the CRUD designation.
 
 ```
@@ -180,6 +174,60 @@ mongo.delete_one(Thing, cust_id = "Fender Stratocaster")
 
 # --- delete many
 mongo.delete(Thing, status = "Mint")
+```
+
+### Associate Schema and a DataPolicy to a type
+
+A Schema and a DataPolicy can be optionally setup in order for the data to be automatically validated prior to the execution of the ```create``` and ```update``` operations. 
+
+If the data validation is successful, the operation occurs as expected, either creating or updating a record on the database. If the validation is unsuccessful, the ```ValiadationException``` is thrown, the flow of execution is interrupted and thus no record is created or updated in the database.
+
+A Schema is any struct that is a subtype of ```Leaf.Schema```:
+
+```julia
+# schema definition
+struct ThingSchema <: Leaf.Schema
+    cust_id ::String
+    amount  ::Int
+    status  ::String
+end
+
+# conversion from a domain object to the corresponding schema
+function Leaf.schema(t::Thing) 
+    return ThingSchema(t.cust_id, t.amount, t.status)
+end
+
+# which schema is associated to the domain object
+function Leaf.scheam_type(::Type{Thing}) 
+    return ThingSchema
+end
+```
+
+The two extra functions ```schema``` and ```schema_type``` must be defined for configuration pourpuses. They tell Leaf how to transform your domain object to the corresponding schema and which schema is associated to the domain object, respectfully. 
+
+By doing only this setup, the following validations are garateed:
+1. On ```create``` operations, the document created on the database follows exactly the field and type definitions of the ```Schema```.
+2. On ```update``` operations, the changes to field values must match the schema field type (cannot update the ```amount``` with a ```String``` value, only an ```Int``` value)
+
+If more complex validations are necessary, then a DataPolicy for the Schema must be defined by calling the function ```Leaf.DataPolicy!```:
+
+```julia
+Leaf.DataPolicy!(ThingSchema, [
+    :amount => (fval, args) -> fval > 100,
+    :status => (fval, args) -> status in args[:possible_states]
+])
+
+```
+
+This policy defines that the field ```amount``` of every ```ThingSchema``` must be over 100 and that the ```status``` must be in the options ```possible_states```. From this point on, any create or update operations will check the modifications against the policy and throw an exception for any invalid data detected.
+
+To set the static data in the policy to be used in the ```args``` field in the policy verifications set the function:
+
+
+```julia
+Leaf.schema_metadata(::Type{ThingSchema}) = Dict(
+    :possible_states => ["ready", "set", "go"]
+)
 ```
 
 #### Additional Test and examples
